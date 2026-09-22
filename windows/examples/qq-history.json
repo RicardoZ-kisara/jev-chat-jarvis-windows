@@ -1,0 +1,13 @@
+{
+  "meta": {"platform": "qq", "ownerId": "100001", "name": "示例项目组"},
+  "members": [
+    {"platformId": "100001", "accountName": "我"},
+    {"platformId": "100002", "accountName": "示例同学"}
+  ],
+  "messages": [
+    {"platformMessageId": "demo-001", "sender": "100002", "timestamp": "2026-09-01T10:00:00+08:00", "content": "这次答辩你负责整理演示稿，我来核对实验数据。"},
+    {"platformMessageId": "demo-002", "sender": "100001", "timestamp": "2026-09-01T10:02:00+08:00", "content": "可以，我周五前把初稿发你。"},
+    {"platformMessageId": "demo-003", "sender": "100001", "timestamp": "2026-09-04T15:00:00+08:00", "content": "演示稿初稿已经整理好并发到群里了。"},
+    {"platformMessageId": "demo-004", "sender": "100002", "timestamp": "2026-09-04T15:05:00+08:00", "content": "收到了，谢谢。还需要补一张系统结构图，下周一一起检查。"}
+  ]
+}

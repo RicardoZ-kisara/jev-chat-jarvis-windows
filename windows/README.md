@@ -1,0 +1,82 @@
+# Jev QQ Windows
+
+基于 [jev-chat/jev-chat-jarvis](https://github.com/jev-chat/jev-chat-jarvis) 的 **QQ Windows 专用**桌面移植。保留 Jev 七题判断与三候选排序，新增 QQ 窗口截图、离线 OCR、历史导入、长期关系/事件/待办档案和辅助回复。原 Android 工程保留在 `app/`，与 Windows 构建独立。
+
+当前版本：**0.1.0 Preview，Windows 10/11 x64**。这是可运行的首版，不代表与 Android 1.3 功能完全一致。
+
+## 下载与使用
+
+从 [Windows Releases](https://github.com/RicardoZ-kisara/jev-chat-jarvis-windows/releases) 下载：
+
+- `Jev-QQ-Windows-Setup-0.1.0-x64.exe`：当前用户安装，可选目录。
+- `Jev-QQ-Windows-Portable-0.1.0-x64.exe`：免安装启动。
+
+程序和中英文 OCR 模型已经打包，不需要安装 Python、Node.js 或 Android 环境。首版未购买代码签名证书，Windows 可能显示发布者未验证；可以与 Release 附带的 SHA256 文件核对。
+
+1. 打开「模型与设置」。判断默认用 OpenRouter 的 `typesafe/jev-1.13`，候选生成默认用 `deepseek/deepseek-chat-v3.1`。两个密钥分别填写；即使用同一个 OpenRouter 密钥，也需要在两处填入。
+2. 生成接口支持 OpenAI 兼容的完整 `/chat/completions` 地址，可选 DeepSeek、通义千问、OpenRouter、本机 Ollama。预设仅填充地址和模型名称，账号权限、模型可用性由服务商决定。仅使用生成模型时可关闭 Jev 判断与排序。
+3. 选择一个已打开的 QQ 窗口，拖动框选消息区域，点击「本地识别文字」。窗口列表按 `QQ.exe` / `QQNT.exe` 进程过滤，不支持其他聊天软件。也可以直接粘贴文本。
+4. **校对文字并标注说话人**，每条一行：`我：内容` 或 `对方：内容`。不根据左右位置猜测身份；删除侧边栏、时间等无关行。
+5. 选填关系背景，点击「分析对话」。只发送最后 10 条消息及关系背景。三条候选可复制；Jev 可用时会排序。
+6. 如需填入：先截取目标窗口，点击候选旁的「5 秒后填入」，再点击该窗口里的空白聊天输入框。程序核对窗口标题、焦点、控件归属及可写性，只调用 UI Automation `ValuePattern.SetValue`，**不模拟 Enter、不点击发送**。
+
+如果窗口变了、输入框已有草稿、处于密码或支付类控件，或 QQ 没有公开可写的 UI Automation 控件，填入会失败并提示手动复制。QQ 输入框能力随版本变化，不能保证直接填入；复制路径始终可用。
+
+## QQ 长上下文
+
+打开「长期聊天档案」，为每个联系人或群聊建立独立会话，填写本人 QQ 号，再导入可读的 QQ JSON / UTF-8 TXT。相同会话重复导入会去重，不同会话数据不会混合。详见 [格式、分段机制与数据说明](QQ_HISTORY.md)，以及 [合成示例](examples/qq-history.json)。
+
+点击「查看分析范围与请求数」后，再决定是否生成档案。程序按时间分段整理关系与偏好观察、关键事件、待办与承诺，每条结论附原始消息编号。支持暂停和续跑；重新导入新消息会使旧档案过期，下次从头重建，以免遗漏补录的旧消息。
+
+在对话工作台选择「关联 QQ 历史」，生成回复时会结合当前会话档案、关键词匹配的历史消息及最近消息。历史总量不会被截成最近十条：十条限制仅针对当前输入框中的即时对话。长期档案是压缩后的重点摘要，不保证穷尽所有事件；引用用于回查，模型解读仍需人工核实。
+
+**QQ NT 原始 `nt_msg.db` 不能直接导入。** 当前接入边界是用户提供的可读导出文件，没有实现数据库解密、进程注入或自动导出。
+
+## 数据与边界
+
+- 截图保留在应用内存，OCR 使用随包分发的 Tesseract 中英文模型，不把图片发送给模型服务，也不下载云端 OCR 模型。
+- 点「分析」后，对话与关系背景发往你配置的判断/生成服务，可能产生 API 费用。关闭 Jev 后只调用生成接口。若只用本机服务并关闭 Jev，分析请求也可留在本机。
+- 即时对话、截图与临时关系背景不写入历史。主动导入的消息及长期档案保存在 `%APPDATA%/jev-chat-windows/qq-history.sqlite`（本机明文 SQLite，不是加密保险箱），供检索及续跑使用。可单独删除会话副本；不会修改 QQ 原始记录。清空本次对话不删除已导入历史，也不清除系统剪贴板。
+- API 密钥使用 Electron `safeStorage`（Windows DPAPI）加密后存放在 `%APPDATA%/jev-chat-windows/settings.json`；界面读取设置时不会取回明文密钥。切换到不同源的接口时，不保留旧服务密钥。
+- 不 hook、不改包、不读取 QQ 专有数据库。只处理你主动选择的 QQ 窗口及有权使用的导出文件。生成长期档案时会把该会话导入记录逐段发送到配置的生成接口；关联历史回复时，档案和选出的历史片段也会发送到已启用的判断/生成接口。
+- 未实现后台自动监听、跨软件联系人关联或视觉模型接口。当前 OCR 仅支持简体中文和英文；复杂气泡、表情、小字可能识别不准，需要人工校对。
+- 模型判断属于建议，不代表已证实的意图；判断、候选、排序失败分别提示，不填充假数据。
+
+## 开发与构建
+
+需要 Windows x64、Node.js 22.12+ 和 npm。首次安装依赖及打包需要网络。
+
+```powershell
+cd windows
+npm ci
+npm run prepare:ocr
+npm start
+```
+
+```powershell
+npm test
+npm run test:desktop
+npm run dist
+```
+
+`test:desktop` 会打开合成聊天窗口，使用本机 mock HTTP 接口测试，包含真实桌面截图、真实离线 OCR 和 UI Automation 填入尝试；不会调用付费服务，也不会给联系人发消息。结果在 `.qa/`。打包输出在 `dist/`。
+
+GitHub Actions 的 `Windows desktop` 工作流执行单元测试并生成安装包与便携版。CI 不运行需要交互式 Windows 会话的桌面验收。查看 [验收记录](QA.md)，区分实际通过与未验证项目。
+
+## 结构
+
+| 路径 | 职责 |
+| --- | --- |
+| `src/core.cjs` | 对话校验、接口请求、降级与排序 |
+| `src/questions.json` | 从上游 `tools/jev/questions.py` 提取的七题题目集 |
+| `src/main.cjs` | Windows 窗口采集、加密配置、本地 OCR、受限 IPC |
+| `src/preload.cjs` | 仅暴露指定能力的桥接层 |
+| `src/ui/` | 中文桌面界面与截图区域选择 |
+| `native/fill.ps1` | 校验聚焦输入框并填入，绝不发送 |
+| `native/list-qq.ps1`、`native/capture.ps1` | 按进程筛选 QQ，按窗口句柄截图 |
+| `src/history.cjs` | 导入与去重、SQLite、分段档案、检索与来源回查 |
+| `test/`、`scripts/desktop-smoke.cjs` | 逻辑测试与桌面验收 |
+
+## 致谢与许可
+
+上游作者 Finderchangchang 与 jev-chat contributors，MIT 许可证及版权声明保留在根目录和本目录 `LICENSE`。Windows 移植由 RicardoZ-kisara 仓库维护，与上游官方版本无隶属关系。Electron、Tesseract.js 及模型文件遵循各自许可证，分发包中保留依赖许可文件。

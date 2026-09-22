@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Jev QQ Windows</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <aside class="rail">
+    <div class="brand"><span class="logo">j.</span><div>jev<span>QQ 对话副驾</span></div></div>
+    <div class="rail-label">WORKSPACE</div>
+    <div class="nav active"><span>◈</span> 对话工作台</div>
+    <button class="nav" id="history-open"><span>◷</span> 长期聊天档案</button>
+    <button class="nav" id="settings-open"><span>⚙</span> 模型与设置</button>
+    <div class="rail-bottom"><span class="status-dot"></span> QQ Windows 专用 <small>v0.1.0 · Preview</small><p>把话说好，<br>决定留给你。</p></div>
+  </aside>
+  <main>
+    <header><div class="breadcrumb">JEV / QQ WINDOWS <span>对话工作台</span></div><div class="header-actions"><span class="pill">本地 OCR</span><button id="clear" class="text-button">清空本次对话</button></div></header>
+    <section class="intro"><div><div class="eyebrow">YOUR QQ CONVERSATION COPILOT</div><h1>读懂语境，从容回应<span>。</span></h1><p>理解 QQ 的长期语境，整理每次对话的下一句。</p></div><div class="intro-mark">✳</div></section>
+    <div class="workspace">
+      <section class="card input-card">
+        <div class="card-head"><div><span class="step">01</span><h2>准备对话</h2></div><span id="source-label" class="muted">手动输入</span></div>
+        <div class="capture-row"><button class="secondary" id="capture-open">▣ &nbsp; 选择 QQ 窗口截图</button><button class="text-button" id="example">试用示例</button></div>
+        <label for="conversation">最近的聊天 <span class="muted">只分析最后 10 条</span></label>
+        <textarea id="conversation" spellcheck="false" placeholder="对方：明天下午一起把方案过一遍？&#10;我：可以，你几点方便？&#10;对方：三点吧，记得带上修改稿。"></textarea>
+        <p class="hint">每条一行，以「我：」或「对方：」开头。截图识别后请校对文字与说话人。</p>
+        <label for="history-select">关联 QQ 历史 <span class="muted">选填</span></label><select id="history-select"><option value="">仅使用本次对话</option></select><p class="hint">关联后，长期档案与检索到的历史片段会随本次分析发送。</p>
+        <label for="relationship">关系与背景 <span class="muted">选填 · 仅本次使用</span></label>
+        <textarea id="relationship" class="context" maxlength="2000" placeholder="例如：对方是同组同学，我们正在准备项目答辩。"></textarea>
+        <div class="disclosure"><span>↗</span><div>点击分析后，文字将发送到设置中的模型接口。<br><strong>截图仅在本机识别；历史档案需主动导入。</strong></div></div>
+        <div class="analyze-row"><button class="primary" id="analyze">分析对话 &nbsp; ↗</button><button id="cancel" class="secondary" hidden>取消</button></div>
+      </section>
+      <section class="results-column">
+        <div class="card judgment-card"><div class="card-head"><div><span class="step">02</span><h2>理解当下</h2></div><span class="model-label" id="judge-label">JEV 判断</span></div>
+          <div id="judgment-empty" class="empty-analysis"><span class="orb">✳</span><h3>好回复，先从听懂开始</h3><p>分析后，这里会显示对方的意图、<br>对话紧张程度与建议动作。</p></div>
+          <div id="judgment" hidden></div>
+        </div>
+        <div class="card replies-card"><div class="card-head"><div><span class="step">03</span><h2>选择你的表达</h2></div><span class="muted">发送由你决定</span></div>
+          <div id="replies-empty" class="replies-empty"><span>01 ───</span><span>02 ───</span><span>03 ───</span><p>三种表达方式，等你来选。</p></div>
+          <div id="replies"></div>
+        </div>
+      </section>
+    </div>
+    <footer><span id="status" role="status" aria-live="polite">准备就绪 · 可先试用示例了解操作</span><span>只辅助表达，不代你发送</span></footer>
+  </main>
+  <dialog id="settings-dialog"><form id="settings-form"><div class="dialog-head"><div><div class="eyebrow">PREFERENCES</div><h2>模型与设置</h2></div><button type="button" class="close" data-close="settings-dialog" aria-label="关闭">×</button></div>
+    <p class="hint">密钥由 Windows 加密保存在当前用户目录。留空保留原密钥；两路密钥分别配置，不跨服务复用。</p>
+    <label class="check"><input id="judge-enabled" type="checkbox">启用 Jev 判断与候选排序</label>
+    <fieldset><legend>Jev 判断接口</legend><label for="judge-url">完整请求地址</label><input id="judge-url" type="url" required><div class="form-grid"><div><label for="judge-model">模型</label><input id="judge-model" required></div><div><label for="judge-key">API Key</label><input id="judge-key" type="password" autocomplete="off"></div></div><label class="check"><input id="clear-judge-key" type="checkbox">清除已保存的判断密钥</label></fieldset>
+    <fieldset><legend>候选生成 · OpenAI 兼容接口</legend><div class="preset-row"><button type="button" class="preset" data-preset="openrouter">OpenRouter</button><button type="button" class="preset" data-preset="deepseek">DeepSeek</button><button type="button" class="preset" data-preset="qwen">通义千问</button><button type="button" class="preset" data-preset="local">本机 Ollama</button></div><label for="reply-url">完整请求地址（含 /chat/completions）</label><input id="reply-url" type="url" required><div class="form-grid"><div><label for="reply-model">模型</label><input id="reply-model" required></div><div><label for="reply-key">API Key</label><input id="reply-key" type="password" autocomplete="off"></div></div><label class="check"><input id="clear-reply-key" type="checkbox">清除已保存的回复密钥</label></fieldset>
+    <label class="check"><input id="always-top" type="checkbox">让助手窗口保持置顶</label><p id="settings-status" role="status" class="hint"></p><div class="dialog-actions"><button type="submit" class="primary">保存设置</button></div>
+  </form></dialog>
+  <dialog id="capture-dialog" class="capture-dialog"><div class="dialog-head"><div><div class="eyebrow">LOCAL CAPTURE</div><h2>选择 QQ 窗口</h2></div><button class="close" data-close="capture-dialog" aria-label="关闭">×</button></div><p class="hint">仅列出 QQ / QQNT 进程的窗口，请保持 QQ 打开、不要最小化。截图后框选消息区域，去掉联系人列表和无关内容。</p><button id="refresh-windows" class="secondary">刷新窗口</button><div id="window-list" class="window-list"></div><div id="crop-area" hidden><div class="crop-toolbar"><span>拖动框选聊天区域</span><button id="reset-crop" class="text-button">选择整张</button></div><canvas id="crop-canvas"></canvas><div class="dialog-actions"><span id="ocr-status" role="status" class="hint"></span><button class="primary" id="ocr">本地识别文字</button></div></div></dialog>
+  <dialog id="history-dialog" class="history-dialog">
+    <div class="dialog-head"><div><div class="eyebrow">QQ LONG-TERM CONTEXT</div><h2>长期聊天档案</h2></div><button class="close" data-close="history-dialog" aria-label="关闭">×</button></div>
+    <p class="hint">导入可读的 QQ JSON / UTF-8 TXT。每个联系人或群聊独立建档，原始 QQ NT 数据库不直接读取。导入副本与档案保存在本机用户目录，不会上传 GitHub。</p>
+    <div class="history-grid"><section><label for="history-session">联系人 / 群聊</label><select id="history-session"><option value="">新建会话</option></select><div class="form-grid"><div><label for="history-name">会话名称</label><input id="history-name" maxlength="100" placeholder="例如：答辩项目组"></div><div><label for="history-self">本人 QQ 号</label><input id="history-self" placeholder="用于区分本人消息"></div></div><button id="history-import" class="secondary">选择导出文件并导入</button><p id="history-stats" class="hint">尚未导入记录。</p>
+    <div class="disclosure"><div>导入仅在本机处理。点击生成档案，才会把本会话记录分段发送到生成模型；可能产生 API 费用。</div></div><button id="history-plan" class="secondary">查看分析范围与请求数</button><p id="history-plan-text" class="hint"></p><div class="analyze-row"><button id="history-summarize" class="primary" disabled>生成 / 继续长期档案</button><button id="history-cancel" class="secondary" hidden>暂停</button></div><button id="history-delete" class="text-button">删除本机导入副本</button><p id="history-status" role="status" class="hint"></p></section>
+    <section><div class="card-head"><h2>关系、事件与待办</h2><span id="profile-coverage" class="muted"></span></div><div id="history-profile" class="history-profile"><p class="hint">每个结论均带原始消息引用，点击编号查看依据。</p></div><pre id="history-evidence" class="history-evidence" hidden></pre></section></div>
+  </dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

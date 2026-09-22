@@ -1,3 +1,17 @@
+# Jev QQ Windows — QQ 长上下文对话助手
+
+基于 [jev-chat/jev-chat-jarvis](https://github.com/jev-chat/jev-chat-jarvis) 的独立 Windows 移植，保留上游 Android 源码和 MIT 许可。
+
+**[下载 Windows 安装包 / 便携版](https://github.com/RicardoZ-kisara/jev-chat-jarvis-windows/releases) · [Windows 使用与构建指南](windows/README.md) · [验收记录](windows/QA.md)**
+
+Windows 0.1.0 Preview 仅开发 QQ：按进程筛选 QQ 窗口、离线中英文 OCR、历史导入、长期关系/事件/待办档案、原文引用、关联历史辅助回复、Jev 七题判断、三候选生成与排序。发送始终由使用者完成。需自备模型 API Key，或配置本机模型。支持导入可读 JSON/TXT，不直接读取 QQ NT 加密消息库；QQ 真实输入框直接填入兼容性尚待逐版本验证。
+
+Windows 源码位于 `windows/`，可构建 x64 安装版与便携版；GitHub Actions 自动构建。Android 工程保持独立。
+
+---
+
+以下为上游 Android 项目说明，支持范围及下载方式针对 Android。
+
 <div align="center">
 
 # Jev 聊天助手

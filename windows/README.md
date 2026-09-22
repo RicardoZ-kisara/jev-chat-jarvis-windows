@@ -2,7 +2,7 @@
 
 基于 [jev-chat/jev-chat-jarvis](https://github.com/jev-chat/jev-chat-jarvis) 的 **QQ Windows 专用**桌面移植。保留 Jev 七题判断与三候选排序，新增 QQ 窗口截图、离线 OCR、历史导入、长期关系/事件/待办档案和辅助回复。原 Android 工程保留在 `app/`，与 Windows 构建独立。
 
-当前源码：**0.1.3，Windows 10/11 x64**。已发布安装包为 0.1.0 Preview。本地支持 [直接读取 QQ NT 记录](NTQQ.md)、[复用 ChatGPT / Codex 登录](LOCAL_CHATGPT.md) 和 [从已导入会话直接分析并生成回复](ANALYSIS.md)。
+当前源码：**0.1.4，Windows 10/11 x64**。已发布安装包为 0.1.0 Preview。本地支持 [直接读取 QQ NT 记录](NTQQ.md)、[复用 ChatGPT / Codex 登录](LOCAL_CHATGPT.md) 和 [从已导入会话直接分析并生成回复](ANALYSIS.md)。0.1.4 修复引用数量或格式问题阻断整份回复：有效引用继续显示，未知编号排除并提示核对。
 
 ## 下载与使用
 

@@ -4,7 +4,7 @@
 
 **[下载 Windows 安装包 / 便携版](https://github.com/RicardoZ-kisara/jev-chat-jarvis-windows/releases) · [Windows 使用与构建指南](windows/README.md) · [验收记录](windows/QA.md)**
 
-当前本地源码为 Windows 0.1.3，已发布安装包仍为 0.1.0 Preview。仅开发 QQ：支持本人 QQ NT 消息库的只读副本解密、WAL 合并、私聊/群聊记录还原，以及可读 JSON/TXT 导入。选中已导入会话即可分析近期消息与相关历史，给出可能性判断、原文依据和三条排序回复，不必先生成完整长期档案。复用 ChatGPT/Codex 时按 Jev 七题结构生成，明确标注为 ChatGPT 估计；也可配置真实 Jev API。分析和分段记忆保存在本机，发送始终由使用者完成。详见 [分析与回复](windows/ANALYSIS.md) 和 [QQ NT 接入](windows/NTQQ.md)。
+当前本地源码为 Windows 0.1.4，已发布安装包仍为 0.1.0 Preview。仅开发 QQ：支持本人 QQ NT 消息库的只读副本解密、WAL 合并、私聊/群聊记录还原，以及可读 JSON/TXT 导入。选中已导入会话即可分析近期消息与相关历史，给出可能性判断、原文依据和三条排序回复，不必先生成完整长期档案。复用 ChatGPT/Codex 时按 Jev 七题结构生成，明确标注为 ChatGPT 估计；也可配置真实 Jev API。分析和分段记忆保存在本机，发送始终由使用者完成。详见 [分析与回复](windows/ANALYSIS.md) 和 [QQ NT 接入](windows/NTQQ.md)。
 
 Windows 源码位于 `windows/`，可构建 x64 安装版与便携版；GitHub Actions 自动构建。Android 工程保持独立。
 

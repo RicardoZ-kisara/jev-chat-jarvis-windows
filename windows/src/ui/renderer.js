@@ -14,6 +14,10 @@ function addReferences(target,refs,result){
   for(const ref of refs){const button=node('button',ref);button.title='查看原始聊天依据';button.addEventListener('click',()=>{const evidence=result.evidence?.find(e=>`M${e.id}`===ref);detail.textContent=evidence?`[${ref}] ${new Date(evidence.time).toLocaleString()}\n${evidence.sender}：${evidence.text}`:'本条原文未包含在此结果中。';detail.hidden=false;});row.append(button);}
   target.append(row,detail);
 }
+function evidenceNotice(target,status){
+  if(status==='unverified')target.append(node('p','依据待核对：本项没有有效原文引用，请对照聊天确认。','warning'));
+  else if(status==='partial')target.append(node('p','部分引用未能核对，已排除；这里只展示本次上下文中的有效原文。','warning'));
+}
 function distribution(title,answer){
   if(!answer?.probabilities)return null;
   const detail=node('details',undefined,'probability-options');detail.append(node('summary',`${title} · 查看其他可能性`));
@@ -33,7 +37,7 @@ function renderResult(result) {
     for (const [title,value] of [['可能的意图',a.true_intent?.choice],['对方可能需要',a.she_needs?.choice],['建议动作',a.best_action?.choice],['是否已有可实质回应的内容',typeof a.should_reply_now?.noul==='number'?(a.should_reply_now.noul>=.5?'有可回应的信息':'先核对信息，避免猜测'):null]]) {const item=node('div',undefined,'metric');item.append(node('small',title),node('strong',labels[value] || value || '暂无判断'));grid.append(item);}
     $('judgment').append(grid,node('p','模型判断存在不确定性，不代表对方的真实心理。','analysis-note'));
     for(const [title,key] of [['按字面理解的可能性','literal_question'],['紧张已缓解的可能性','tension_resolved']]){const score=a[key]?.noul;if(typeof score==='number'){const item=node('div',undefined,'metric');item.append(node('small',title),node('strong',`${(score*100).toFixed(0)}%`));grid.append(item);}}
-    if(result.analysis){const block=node('div',undefined,'analysis-explanation');block.append(node('h3','判断依据'),node('p',result.analysis.summary));addReferences(block,result.analysis.refs,result);for(const note of result.analysis.uncertainties||[])block.append(node('p',note,'hint'));$('judgment').append(block);}
+    if(result.analysis){const block=node('div',undefined,'analysis-explanation');block.append(node('h3','判断依据'));evidenceNotice(block,result.analysis.evidenceStatus);block.append(node('p',result.analysis.summary));addReferences(block,result.analysis.refs,result);for(const note of result.analysis.uncertainties||[])block.append(node('p',note,'hint'));$('judgment').append(block);}
     for(const [title,key] of [['对方意图','true_intent'],['建议动作','best_action'],['对方需求','she_needs']]){const detail=distribution(title,a[key]);if(detail)$('judgment').append(detail);}
     if(result.probabilityNote)$('judgment').append(node('p',result.probabilityNote,'analysis-note'));
   }
@@ -52,7 +56,7 @@ function renderResult(result) {
       status('请在 5 秒内点击刚才截图窗口中的空白聊天输入框；程序只填字，不发送。');
       try{await api.fill(reply.text);status('已填入并核对文字。请检查后自行决定是否发送。');}catch(e){status(`${e.message} 可使用「复制」后手动粘贴。`,true);}finally{filling=false;document.querySelectorAll('.reply-actions button').forEach(b=>b.disabled=false);}
     });
-    actions.append(copy,fill);card.append(top,node('p',reply.text,'reply-text'));if(reply.reason)card.append(node('div',reply.reason,'reply-reason'));addReferences(card,reply.refs,result);card.append(actions);$('replies').append(card);
+    actions.append(copy,fill);card.append(top,node('p',reply.text,'reply-text'));if(reply.reason)card.append(node('div',reply.reason,'reply-reason'));evidenceNotice(card,reply.evidenceStatus);addReferences(card,reply.refs,result);card.append(actions);$('replies').append(card);
   });
 }
 async function runAnalysis(){

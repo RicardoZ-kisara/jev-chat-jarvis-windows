@@ -1,10 +1,10 @@
 # 本机 ChatGPT / Codex 配置
 
-本地 0.1.3 复用这台电脑上已登录的 ChatGPT 账号，七题判断、候选排序和长期档案均使用 `gpt-6-astra`。无需 API Key，也不需要另外启动 HTTP 服务。判断采用 Jev 七题结构，界面明确标注 ChatGPT 来源，不调用或冒充真实 Jev 模型。
+本地 0.1.4 复用这台电脑上已登录的 ChatGPT 账号，七题判断、候选排序和长期档案均使用 `gpt-6-astra`。无需 API Key，也不需要另外启动 HTTP 服务。判断采用 Jev 七题结构，界面明确标注 ChatGPT 来源，不调用或冒充真实 Jev 模型。
 
 ## 启动和使用
 
-双击 `D:\chat_tool\启动QQ助手.cmd`，或桌面「QQ助手-ChatGPT」。本次 0.1.3 本地构建在 `windows\dist-analysis\win-unpacked\Jev QQ Windows.exe`，旧的构建保留在 `windows\dist\` 和 `windows\dist-ntqq\`。
+双击 `D:\chat_tool\启动QQ助手.cmd`，或桌面「QQ助手-ChatGPT」。本次 0.1.4 本地构建在 `windows\dist-reference\win-unpacked\Jev QQ Windows.exe`，此前构建目录保留。
 
 在「模型与设置」选择「复用本机 ChatGPT / Codex 登录」。Codex CLI 路径留空，程序自动检测已安装的 `codex.exe`。模型名称需要属于当前账号可用的模型。
 

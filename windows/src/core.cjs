@@ -85,7 +85,7 @@ async function analyze({ text, messages: importedMessages, relationship = '', hi
   if(settings.replyProvider==='codex'){
     const {parseDecision,decisionPrompt}=require('./decision.cjs');
     const validRefs=new Set([...(historyContext?.referenceIds||[]),...messages.map(m=>m.ref).filter(Boolean)]);
-    const response=await complete(settings,{model:generationModel(settings),messages:decisionPrompt(state)},signal,fetcher);
+    const response=await complete(settings,{model:generationModel(settings),messages:decisionPrompt(state,validRefs)},signal,fetcher);
     if(signal?.aborted)throw new Error('已取消分析。');
     return {...parseDecision(response.choices?.[0]?.message?.content||'',validRefs),model:generationModel(settings)};
   }

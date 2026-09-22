@@ -17,7 +17,7 @@
 - QQ 原文件只读打开。复制消息库及 WAL 后，比较文件元数据与 SHA256；持续变化则重试，仍不稳定就报错。
 - 页大小 4096、AES-256-CBC、PBKDF2-SHA512 派生 HMAC key。每个输出页必须通过 HMAC 校验。WAL 校验 salt 和累计 checksum，仅合并已提交事务；重置前的旧尾部及未提交事务不应用。
 - 合并后的副本通过 SQLite `quick_check` 才可用于导入。失败不会冒充成功，也不会悄悄忽略 WAL 后只读主库。
-- 临时解密副本位于 `%APPDATA%\jev-chat-windows\ntqq-snapshots`，已导入原文、来源映射和分段记忆位于同目录下的 `qq-history.sqlite`。均为本机明文，请勿把用户数据目录提交到 GitHub。重新读取同一账号时会清理当前运行保存的上一份临时副本；程序重启前留下的副本仍可能占用磁盘。
+- 临时解密副本位于 `%APPDATA%\jev-chat-windows\ntqq-snapshots`，已导入原文、来源映射和分段记忆位于同目录下的 `qq-history.sqlite`。均为本机明文，请勿把用户数据目录提交到 GitHub。重新读取同一账号或正常退出时会清理当前运行的临时副本；异常退出留下的副本仍可能占用磁盘。
 
 ## 还原范围
 

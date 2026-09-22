@@ -187,7 +187,7 @@ $('ntqq-read').addEventListener('click',async()=>{
 });
 $('ntqq-import').addEventListener('click',async()=>{
   if(ntqqBusy)return;const selected=ntqqConversations.filter(c=>c.selected).map(c=>c.key);if(!selected.length){ntqqStatus('请先勾选会话。');return;}ntqqSetBusy(true);
-  try{const result=await api.ntqqImport({account:ntqqAccount,conversations:selected});await refreshHistory(result.sessions[0]);ntqqStatus(`已加入 ${result.sessions.length} 个会话：新增 ${result.added} 条，更新 ${result.updated} 条，重复 ${result.duplicates} 条。${result.unsupported} 条含附件或未支持内容，其中 ${result.malformed} 条结构未解析；未调用模型。`);}catch(e){ntqqStatus(e.message);}finally{ntqqSetBusy(false);}
+  try{const result=await api.ntqqImport({account:ntqqAccount,conversations:selected});await refreshHistory(result.sessions[0]);ntqqStatus(`已加入 ${result.sessions.length} 个会话：新增 ${result.added} 条，更新 ${result.updated} 条，重复 ${result.duplicates} 条，跳过 ${result.skipped} 条。${result.unsupported} 条含附件或未支持内容，其中 ${result.malformed} 条结构未解析；未调用模型。`);}catch(e){ntqqStatus(e.message);}finally{ntqqSetBusy(false);}
 });
 $('ntqq-cancel').addEventListener('click',()=>api.ntqqCancel());
 api.onNtqqProgress(p=>ntqqStatus(p.message));

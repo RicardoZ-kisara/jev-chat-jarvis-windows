@@ -267,4 +267,8 @@ async function discardSnapshot(workspace){
   for(const file of ['encrypted.db','encrypted.db-wal','messages.sqlite','messages.sqlite-wal','messages.sqlite-shm','snapshot.json'])await fs.unlink(path.join(target,file)).catch(()=>{});
   await fs.rmdir(target).catch(()=>{});
 }
-app.on('window-all-closed', () => {controller?.abort(); summaryController?.abort(); ntqqController?.abort(); worker?.terminate(); app.quit();});
+app.on('window-all-closed', async () => {
+  controller?.abort();summaryController?.abort();ntqqController?.abort();worker?.terminate();
+  await Promise.allSettled([...ntqqSnapshots.values()].map(snapshot=>discardSnapshot(snapshot.workspace)));
+  app.quit();
+});

@@ -4,7 +4,7 @@
 
 **[下载 Windows 安装包 / 便携版](https://github.com/RicardoZ-kisara/jev-chat-jarvis-windows/releases) · [Windows 使用与构建指南](windows/README.md) · [验收记录](windows/QA.md)**
 
-Windows 0.1.0 Preview 仅开发 QQ：按进程筛选 QQ 窗口、离线中英文 OCR、历史导入、长期关系/事件/待办档案、原文引用、关联历史辅助回复、Jev 七题判断、三候选生成与排序。发送始终由使用者完成。需自备模型 API Key，或配置本机模型。支持导入可读 JSON/TXT，不直接读取 QQ NT 加密消息库；QQ 真实输入框直接填入兼容性尚待逐版本验证。
+当前本地源码为 Windows 0.1.2，已发布安装包仍为 0.1.0 Preview。仅开发 QQ：支持本人 QQ NT 消息库的只读副本解密、WAL 合并、私聊/群聊记录还原，以及可读 JSON/TXT 导入。保留原文和分段记忆，整理关系、事件、待办并辅助回复。模型可复用本机已登录的 ChatGPT/Codex 账号，也可配置 API；发送始终由使用者完成。详见 [QQ NT 接入](windows/NTQQ.md)。
 
 Windows 源码位于 `windows/`，可构建 x64 安装版与便携版；GitHub Actions 自动构建。Android 工程保持独立。
 

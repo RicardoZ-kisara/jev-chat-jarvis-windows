@@ -1,6 +1,6 @@
 {
   "name": "jev-chat-windows",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "QQ-only Windows chat copilot with local OCR and human-controlled replies",
   "author": "RicardoZ-kisara; original project: jev-chat contributors",
   "license": "MIT",
@@ -10,7 +10,8 @@
     "prepare:ocr": "node scripts/prepare-ocr.cjs",
     "test": "node --test test/*.test.cjs",
     "test:desktop": "node scripts/desktop-smoke.cjs",
-    "dist": "npm run prepare:ocr && electron-builder --win nsis portable --x64 --publish never"
+    "dist": "npm run prepare:ocr && npm run build:ntqq && electron-builder --win nsis portable --x64 --publish never",
+    "build:ntqq": "node scripts/build-ntqq.cjs"
   },
   "dependencies": {
     "tesseract.js": "7.0.0"
@@ -35,12 +36,19 @@
       "resources/icon.ico",
       "package.json",
       "LICENSE",
-      "THIRD_PARTY.md"
+      "THIRD_PARTY.md",
+      "licenses/**/*",
+      "!native/ntqq/bin/**/*",
+      "!native/ntqq/obj/**/*"
     ],
     "extraResources": [
       {
         "from": "resources/ocr",
         "to": "ocr"
+      },
+      {
+        "from": "resources/ntqq",
+        "to": "ntqq"
       }
     ],
     "win": {

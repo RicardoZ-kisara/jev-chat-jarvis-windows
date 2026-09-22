@@ -47,14 +47,26 @@ document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',
 $('capture-dialog').addEventListener('cancel',e=>{if(ocrRunning)e.preventDefault();});
 function populateSettings(s) {
   settings=s;$('judge-enabled').checked=s.judgeEnabled;$('always-top').checked=s.alwaysOnTop;
+  $('ntqq-root').value=s.qqDataRoot||'';
+  $('reply-provider').value=s.replyProvider;$('codex-path').value=s.codexPath;$('codex-model').value=s.codexModel;
   for(const route of ['judge','reply']){for(const field of ['url','model'])$(`${route}-${field}`).value=s[route+field[0].toUpperCase()+field.slice(1)];$(`${route}-key`).value='';$(`${route}-key`).placeholder=s[`has${route[0].toUpperCase()+route.slice(1)}Key`]?'已保存 · 留空保留':'输入密钥（本机模型可留空）';$(`clear-${route}-key`).checked=false;}
   $('judge-label').textContent=s.judgeEnabled?'JEV 判断':'仅生成候选';
+  $('judgment-empty').querySelector('p').textContent=s.judgeEnabled?'分析后，这里会显示对方的意图、对话紧张程度与建议动作。':'已关闭 Jev 判断与排序。下方生成三条候选；关系、事件与待办请查看「长期聊天档案」。';
+  $('provider-label').textContent=s.replyProvider==='codex'?`ChatGPT · ${s.codexModel}`:'模型 API';
+  updateProvider();
 }
+function updateProvider() {
+  const codex=$('reply-provider').value==='codex';
+  $('codex-settings').hidden=!codex;$('api-settings').hidden=codex;$('judge-settings').hidden=codex;
+  $('api-settings').disabled=codex;$('judge-settings').disabled=codex;$('codex-settings').disabled=!codex;
+  $('judge-enabled').disabled=codex;if(codex)$('judge-enabled').checked=false;
+}
+$('reply-provider').addEventListener('change',updateProvider);
 $('settings-open').addEventListener('click',async()=>{try{populateSettings(await api.getSettings());$('settings-status').textContent='';$('settings-dialog').showModal();}catch(e){status(e.message,true);}});
 $('settings-form').addEventListener('submit',async e=>{
-  e.preventDefault();const input={judgeEnabled:$('judge-enabled').checked,alwaysOnTop:$('always-top').checked};
+  e.preventDefault();const input={judgeEnabled:$('judge-enabled').checked,alwaysOnTop:$('always-top').checked,replyProvider:$('reply-provider').value,codexPath:$('codex-path').value,codexModel:$('codex-model').value};
   for(const route of ['judge','reply']){for(const field of ['url','model','key'])input[route+field[0].toUpperCase()+field.slice(1)]=$(`${route}-${field}`).value;input[`clear${route[0].toUpperCase()+route.slice(1)}Key`]=$(`clear-${route}-key`).checked;}
-  try{populateSettings(await api.saveSettings(input));$('settings-dialog').close();status('设置已保存，密钥已通过 Windows 加密。');}catch(err){$('settings-status').textContent=err.message;}
+  try{populateSettings(await api.saveSettings(input));$('settings-dialog').close();status(input.replyProvider==='codex'?'已选择本机 Codex 登录；分析在 OpenAI 云端完成，使用账号额度。':'设置已保存，密钥已通过 Windows 加密。');}catch(err){$('settings-status').textContent=err.message;}
 });
 const presets={openrouter:['https://openrouter.ai/api/v1/chat/completions','deepseek/deepseek-chat-v3.1'],deepseek:['https://api.deepseek.com/v1/chat/completions','deepseek-chat'],qwen:['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions','qwen-plus'],local:['http://127.0.0.1:11434/v1/chat/completions','qwen3:8b']};
 document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{const p=presets[b.dataset.preset];$('reply-url').value=p[0];$('reply-model').value=p[1];$('reply-key').value='';$('clear-reply-key').checked=true;$('settings-status').textContent='已切换预设并标记清除旧回复密钥，请填写对应服务的新密钥。';}));
@@ -105,7 +117,7 @@ async function showProfile(id){
   if(!id)return;
   const profile=await api.historyProfile(id),item=sessions.find(s=>s.id===id);
   if(!profile){$('history-profile').append(node('p','尚未生成档案。请先查看范围，再开始分段分析。','hint'));return;}
-  $('profile-coverage').textContent=`已覆盖 ${profile.covered}/${profile.total} 条${profile.revision!==item?.revision?' · 有新导入，需重建':''}`;
+  $('profile-coverage').textContent=`已覆盖 ${profile.covered}/${profile.total} 条 · ${profile.memoryCount||0} 段记忆${profile.revision!==item?.revision?' · 有新导入，需更新':''}`;
   for(const [key,title] of [['relationships','关系与偏好观察'],['events','关键事件'],['todos','待办与承诺']]){
     $('history-profile').append(node('h3',title));
     if(!profile.body[key].length)$('history-profile').append(node('p','暂无有依据的条目。','hint'));
@@ -148,3 +160,34 @@ $('history-cancel').addEventListener('click',()=>api.historyCancel());
 $('history-delete').addEventListener('click',async()=>{try{if(await api.historyDelete($('history-session').value)){await refreshHistory('');await selectHistory();historyStatus('本机副本与档案已删除，QQ 原始文件未修改。');}}catch(e){historyStatus(e.message);}});
 api.onHistoryProgress(p=>historyStatus(`已完成 ${p.batch}/${p.batches} 段，覆盖 ${p.covered}/${p.total} 条；可暂停后续跑。`));
 refreshHistory().catch(e=>status(e.message,true));
+
+let ntqqBusy=false,ntqqConversations=[],ntqqAccount='';
+const ntqqStatus=text=>{$('ntqq-status').textContent=text;};
+function ntqqSetBusy(value){ntqqBusy=value;for(const id of ['ntqq-root','ntqq-browse','ntqq-discover','ntqq-account','ntqq-read','ntqq-import','ntqq-all','ntqq-filter'])$(id).disabled=value;$('ntqq-cancel').hidden=!value;$('ntqq-conversations').querySelectorAll('input').forEach(el=>el.disabled=value);if(!value){$('ntqq-read').disabled=!$('ntqq-account').value;$('ntqq-import').disabled=!ntqqConversations.length;}}
+function renderNtqq(){
+  $('ntqq-conversations').replaceChildren();const filter=$('ntqq-filter').value.trim().toLowerCase();
+  for(const entry of ntqqConversations.filter(c=>`${c.name} ${c.peer}`.toLowerCase().includes(filter))){
+    const label=node('label',undefined,'ntqq-row'),check=document.createElement('input');check.type='checkbox';check.checked=Boolean(entry.selected);check.disabled=ntqqBusy;check.addEventListener('change',()=>{entry.selected=check.checked;$('ntqq-all').checked=ntqqConversations.every(c=>c.selected);});
+    label.append(check,node('span',entry.name),node('small',`${entry.count.toLocaleString()} 条 · ${new Date(entry.first*1000).toLocaleDateString()} — ${new Date(entry.last*1000).toLocaleDateString()}`));$('ntqq-conversations').append(label);
+  }
+}
+async function discoverNtqq(){
+  if(ntqqBusy)return;ntqqSetBusy(true);ntqqStatus('正在读取账号目录…');
+  try{const accounts=await api.ntqqDiscover($('ntqq-root').value.trim());$('ntqq-account').replaceChildren();for(const item of accounts)$('ntqq-account').add(new Option(`${item.account} · ${(item.bytes/1048576).toFixed(0)} MB`,item.account));ntqqConversations=[];ntqqAccount='';renderNtqq();ntqqStatus(accounts.length?'请选择已登录的账号并读取。':'没有发现消息库，请检查目录。');}catch(e){ntqqStatus(e.message);}finally{ntqqSetBusy(false);}
+}
+$('ntqq-open').addEventListener('click',async()=>{$('ntqq-dialog').showModal();if(!$('ntqq-account').options.length||!$('ntqq-account').value){if($('ntqq-root').value)await discoverNtqq();}});
+$('ntqq-browse').addEventListener('click',async()=>{try{const root=await api.ntqqChooseRoot();if(root){$('ntqq-root').value=root;await discoverNtqq();}}catch(e){ntqqStatus(e.message);}});
+$('ntqq-discover').addEventListener('click',discoverNtqq);
+$('ntqq-account').addEventListener('change',()=>{ntqqConversations=[];ntqqAccount='';renderNtqq();$('ntqq-all').checked=false;$('ntqq-import').disabled=true;});
+$('ntqq-filter').addEventListener('input',renderNtqq);
+$('ntqq-all').addEventListener('change',()=>{for(const c of ntqqConversations)c.selected=$('ntqq-all').checked;renderNtqq();});
+$('ntqq-read').addEventListener('click',async()=>{
+  if(ntqqBusy)return;const account=$('ntqq-account').value;ntqqSetBusy(true);ntqqStatus('开始读取…');
+  try{const result=await api.ntqqRead(account);ntqqConversations=result.conversations;ntqqAccount=result.account;$('ntqq-all').checked=false;renderNtqq();$('ntqq-info').textContent=`${result.conversations.length} 个会话，${result.conversations.reduce((n,c)=>n+c.count,0).toLocaleString()} 条数据库记录；${result.verifiedPages.toLocaleString()} 页通过校验，合并 ${result.walFrames} 个有效日志帧。`;ntqqStatus('读取完成。请选择会话，加入本机长期档案。');}catch(e){ntqqStatus(e.message);}finally{ntqqSetBusy(false);}
+});
+$('ntqq-import').addEventListener('click',async()=>{
+  if(ntqqBusy)return;const selected=ntqqConversations.filter(c=>c.selected).map(c=>c.key);if(!selected.length){ntqqStatus('请先勾选会话。');return;}ntqqSetBusy(true);
+  try{const result=await api.ntqqImport({account:ntqqAccount,conversations:selected});await refreshHistory(result.sessions[0]);ntqqStatus(`已加入 ${result.sessions.length} 个会话：新增 ${result.added} 条，更新 ${result.updated} 条，重复 ${result.duplicates} 条。${result.unsupported} 条含附件或未支持内容，其中 ${result.malformed} 条结构未解析；未调用模型。`);}catch(e){ntqqStatus(e.message);}finally{ntqqSetBusy(false);}
+});
+$('ntqq-cancel').addEventListener('click',()=>api.ntqqCancel());
+api.onNtqqProgress(p=>ntqqStatus(p.message));

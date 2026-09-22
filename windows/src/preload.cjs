@@ -6,6 +6,12 @@ async function invoke(channel, ...args) {
 }
 contextBridge.exposeInMainWorld('jev', {
   getSettings: () => invoke('settings:get'),
+  ntqqDiscover: root => invoke('ntqq:discover',root),
+  ntqqChooseRoot: () => invoke('ntqq:choose-root'),
+  ntqqRead: account => invoke('ntqq:read',account),
+  ntqqImport: input => invoke('ntqq:import',input),
+  ntqqCancel: () => invoke('ntqq:cancel'),
+  onNtqqProgress: callback => ipcRenderer.on('ntqq-progress',(_event,value)=>callback(value)),
   saveSettings: data => invoke('settings:save', data),
   listWindows: () => invoke('windows:list'),
   capture: id => invoke('windows:capture', id),

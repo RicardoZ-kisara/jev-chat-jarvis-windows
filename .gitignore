@@ -43,7 +43,11 @@ keystore.properties
 # Windows desktop dependencies, builds, offline model copies and local QA
 /windows/node_modules/
 /windows/dist/
+/windows/dist-*/
 /windows/resources/ocr/
 /windows/.qa/
 /windows/*.sqlite*
 *.log
+**/bin/
+**/obj/
+/windows/resources/ntqq/

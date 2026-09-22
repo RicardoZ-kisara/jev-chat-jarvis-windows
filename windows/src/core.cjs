@@ -6,6 +6,8 @@ const DEFAULTS = Object.freeze({
   judgeModel: 'typesafe/jev-1.13',
   replyUrl: 'https://openrouter.ai/api/v1/chat/completions',
   replyModel: 'deepseek/deepseek-chat-v3.1',
+  replyProvider: 'api', codexPath: '', codexModel: 'gpt-6-astra',
+  qqDataRoot: '',
   judgeKey: '', replyKey: '', alwaysOnTop: false
 });
 function endpoint(value) {
@@ -28,6 +30,9 @@ function validateSettings(input) {
   }
   out.judgeUrl = endpoint(out.judgeUrl);
   out.replyUrl = endpoint(out.replyUrl);
+  if (!['api', 'codex'].includes(out.replyProvider)) throw new Error('请选择有效的模型接入方式。');
+  if (!out.codexModel || out.codexModel.startsWith('-') || /\s/.test(out.codexModel)) throw new Error('Codex 模型名称无效。');
+  if (out.replyProvider === 'codex') out.judgeEnabled = false;
   if (!out.replyModel || !out.judgeModel) throw new Error('模型名称不能为空。');
   return out;
 }
@@ -72,6 +77,7 @@ async function post(url, key, body, signal, fetcher = fetch) {
   try { return await response.json(); } catch { throw new Error('接口返回的内容不是 JSON。'); }
 }
 async function analyze({ text, relationship = '', historyContext = null }, settings, signal, fetcher) {
+  if (settings.replyProvider === 'codex') settings = {...settings, judgeEnabled: false};
   const messages = parseConversation(text);
   if (typeof relationship !== 'string' || relationship.length > 2000) throw new Error('关系背景最多 2,000 字。');
   const state = { chat: { relationship, messages, latest_from: messages.at(-1).from } };
@@ -86,7 +92,7 @@ async function analyze({ text, relationship = '', historyContext = null }, setti
       if (!data.answers || !data.answers.true_intent || !data.answers.danger_level) throw new Error('判断接口返回格式不正确。');
       return {answers: data.answers};
     }).catch(error => ({error: error.message})) : Promise.resolve({});
-  const draftTask = request(settings.replyUrl, settings.replyKey, draftBody).then(data => parseReplies(data.choices?.[0]?.message?.content));
+  const draftTask = complete(settings, draftBody, signal, fetcher).then(data => parseReplies(data.choices?.[0]?.message?.content));
   const [judge, draft] = await Promise.allSettled([judgeTask, draftTask]);
   if (signal?.aborted) throw new Error('已取消分析。');
   const judgment = judge.value || {};
@@ -111,4 +117,12 @@ async function analyze({ text, relationship = '', historyContext = null }, setti
   if (signal?.aborted) throw new Error('已取消分析。');
   return {answers: judgment.answers || null, replies, warnings};
 }
-module.exports = {DEFAULTS, endpoint, validateSettings, parseConversation, parseReplies, analyze, post};
+function generationModel(settings) { return settings.replyProvider === 'codex' ? settings.codexModel : settings.replyModel; }
+async function complete(settings, body, signal, fetcher) {
+  if (settings.replyProvider === 'codex') {
+    const content = await require('./codex.cjs').generate({executable: settings.codexPath, model: settings.codexModel, messages: body.messages}, signal);
+    return {choices: [{message: {content}}]};
+  }
+  return post(settings.replyUrl, settings.replyKey, body, signal, fetcher);
+}
+module.exports = {DEFAULTS, endpoint, validateSettings, parseConversation, parseReplies, analyze, post, complete, generationModel};

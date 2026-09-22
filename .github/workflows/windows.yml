@@ -21,7 +21,12 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: windows/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
       - run: npm ci --no-audit --no-fund
+      - run: npm run build:ntqq
+      - run: .\resources\ntqq\Jev.NtqqBridge.exe --self-test
       - run: npm test
       - run: npm run dist
         env:

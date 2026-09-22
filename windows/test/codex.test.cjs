@@ -55,13 +55,13 @@ test('CLI failure never reflects private diagnostics', async t => {
   const f = await fixture(t, child => {child.stderr.write('SECRET CHAT token=SECRET HTTP 429');child.emit('close',1);});
   await assert.rejects(f.run(), error => /额度|限流/.test(error.message) && !error.message.includes('SECRET'));
 });
-test('Codex reply mode bypasses both HTTP services and disables Jev ranking', async t => {
+test('Codex provides complete model judgment and ranked replies without using either HTTP service', async t => {
   let called;
-  t.mock.method(codex, 'generate', async options => {called=options; return '["a","b","c"]';});
+  t.mock.method(codex, 'generate', async options => {called=options; return JSON.stringify(require('./helpers/decision.cjs')());});
   const settings = validateSettings({...DEFAULTS,replyProvider:'codex',judgeKey:'private',replyKey:'private'});
   assert.equal(settings.judgeEnabled,false);
   const result = await analyze({text:'对方：你好'}, {...settings,judgeEnabled:true}, null, () => {throw new Error('Unexpected HTTP');});
-  assert.equal(result.replies.length,3); assert.equal(result.answers,null);
+  assert.equal(result.replies.length,3); assert.equal(Object.keys(result.answers).length,7);assert.ok(Math.abs(result.replies[0].probability-.6)<1e-10);assert.match(result.judgmentSource,/ChatGPT/);
   assert.equal(called.model, settings.codexModel); assert.ok(!JSON.stringify(called).includes('private'));
 });
 test('history uses Codex with valid references and resumes saved checkpoints', async t => {

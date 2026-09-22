@@ -1,6 +1,6 @@
 {
   "name": "jev-chat-windows",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "QQ-only Windows chat copilot with local OCR and human-controlled replies",
   "author": "RicardoZ-kisara; original project: jev-chat contributors",
   "license": "MIT",

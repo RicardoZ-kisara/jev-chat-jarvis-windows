@@ -1,16 +1,18 @@
 # 本机 ChatGPT / Codex 配置
 
-本地 0.1.1 版新增 Codex CLI 接入。复用这台电脑上已登录的 ChatGPT 账号，候选回复和长期档案均使用 `gpt-6-astra`。无需 API Key，也不需要另外启动 HTTP 服务。Jev 判断与排序在此模式下关闭。
+本地 0.1.3 复用这台电脑上已登录的 ChatGPT 账号，七题判断、候选排序和长期档案均使用 `gpt-6-astra`。无需 API Key，也不需要另外启动 HTTP 服务。判断采用 Jev 七题结构，界面明确标注 ChatGPT 来源，不调用或冒充真实 Jev 模型。
 
 ## 启动和使用
 
-双击 `D:\chat_tool\启动QQ助手.cmd`，或桌面「QQ助手-ChatGPT」。本次 0.1.2 本地构建在 `windows\dist-ntqq\win-unpacked\Jev QQ Windows.exe`，旧的 0.1.1 构建保留在 `windows\dist\`。
+双击 `D:\chat_tool\启动QQ助手.cmd`，或桌面「QQ助手-ChatGPT」。本次 0.1.3 本地构建在 `windows\dist-analysis\win-unpacked\Jev QQ Windows.exe`，旧的构建保留在 `windows\dist\` 和 `windows\dist-ntqq\`。
 
 在「模型与设置」选择「复用本机 ChatGPT / Codex 登录」。Codex CLI 路径留空，程序自动检测已安装的 `codex.exe`。模型名称需要属于当前账号可用的模型。
 
-先用「试用示例 → 分析对话」验证三条候选，再导入自己的 QQ JSON / UTF-8 TXT。「长期聊天档案 → 查看分析范围与请求数 → 生成 / 继续长期档案」会分段处理全部导入消息，整理关系、事件和待办。返回对话工作台并选择「关联 QQ 历史」，下一次回复就会带上档案和检索片段。
+工作台选择已导入会话，点击「分析可能性并生成回复」，即可得到 ChatGPT 按 Jev 七题结构给出的判断、备选可能性、原文依据和三条排序回复，无需手工复制聊天。不是 Jev 模型自身的输出，百分比不是成功率。结果按会话保存，刷新或重启后可恢复；新增记录会使旧分析失效。完整流程见 [ANALYSIS.md](ANALYSIS.md)。
 
-0.1.2 起可在「直接读取 QQ 记录」选择 `D:\QQ\chat\Tencent Files`，保持本人账号登录后读取消息库副本，不再需要手动导出。解密、WAL 合并和本机导入不调用模型；生成档案时才使用 ChatGPT。流程与限制见 [NTQQ.md](NTQQ.md)。
+需要覆盖更多长期事件时，再通过「查看 / 更新长期记忆 → 查看完整档案的范围与请求数 → 生成 / 继续长期档案」分段整理关系、事件和待办。之后再次分析回复就会使用有效档案与检索到的分段记忆。
+
+0.1.2 起可在「直接读取 QQ 记录」选择 `D:\QQ\chat\Tencent Files`，保持本人账号登录后读取消息库副本，不再需要手动导出。解密、WAL 合并和本机导入不调用模型；点击分析回复或生成档案才使用 ChatGPT。流程与限制见 [NTQQ.md](NTQQ.md)。
 
 ## 登录、数据和额度
 

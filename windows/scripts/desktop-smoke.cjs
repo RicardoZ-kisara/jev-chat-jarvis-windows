@@ -23,7 +23,7 @@ async function main(){
     const executablePath=process.env.JEV_TEST_EXECUTABLE;
     app=await electron.launch({...(executablePath?{executablePath}:{}),args:[...(executablePath?[]:[path.resolve(__dirname,'..')]),'--smoke-test','--force-renderer-accessibility'],env:{...process.env,JEV_TEST_DATA:data},timeout:60000});
     const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));
-    await page.getByRole('heading',{name:'准备对话'}).waitFor();
+    await page.getByRole('heading',{name:'选择要回复的对话'}).waitFor();
     await page.screenshot({path:path.join(output,'startup.png')});checks.push('Native Electron window starts with isolated renderer');
     assert.equal(await page.evaluate(()=>typeof require),'undefined');
     await page.locator('#settings-open').click();
@@ -57,7 +57,7 @@ async function main(){
       await fixture.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent('<html><head><title>Jev QA Synthetic QQ</title></head><body style="font:28px Segoe UI,Microsoft YaHei;background:white;padding:35px"><h2>LOCAL OCR TEST</h2><p>对方：明天下午三点见。</p><p>我：好的，带上修改稿。</p><label for="chat">Message</label><textarea id="chat" style="display:block;width:90%;height:80px;font-size:24px"></textarea></body></html>'));
     });
     const fixture=await fixturePromise;await fixture.waitForLoadState();
-    await page.bringToFront();await page.locator('#capture-open').click();
+    await page.bringToFront();await page.locator('#conversation-mode').selectOption('manual');await page.locator('#capture-open').click();
     await page.getByTitle('Jev QA Synthetic QQ',{exact:true}).click({timeout:30000});
     await page.locator('#crop-canvas').waitFor();await page.locator('#ocr').click();
     await page.locator('#capture-dialog').waitFor({state:'hidden',timeout:120000});

@@ -165,9 +165,17 @@ app.whenReady().then(async () => {
     if (controller || summaryController || ntqqController) throw new Error('正在处理数据，请等待或暂停当前任务。');
     controller = new AbortController();
     try {
-      const historyContext = input.historyId ? history.context(input.historyId, input.text) : null;
-      const result = await analyze({text:input.text,relationship:input.relationship,historyContext}, {...settings}, controller.signal);
-      return {...result,historyInfo:historyContext?{name:historyContext.sessionName,total:historyContext.total,coverage:historyContext.profileCoverage,evidenceCount:historyContext.evidence.length}:null};
+      const recent=input.mode==='history'?history.recent(String(input.historyId)):null;
+      if(recent&&recent.revision!==input.revision)throw new Error('会话记录已变化，请重新载入后分析。');
+      const query=recent?recent.messages.slice(-5).reverse().map(m=>m.text).join('\n'):input.text;
+      const historyContext = input.historyId ? history.context(input.historyId, query) : null;
+      const result = await analyze({text:input.text,messages:recent?.messages,relationship:input.relationship,historyContext}, {...settings}, controller.signal);
+      const refs=[...new Set([...(result.analysis?.refs||[]),...result.replies.flatMap(r=>r.refs||[])])];
+      const output={...result,generatedAt:new Date().toISOString(),historyInfo:historyContext?{id:input.historyId,name:historyContext.sessionName,total:historyContext.total,coverage:historyContext.profileCoverage,evidenceCount:historyContext.evidence.length,recentCount:recent?.messages.length||0,memoryCount:historyContext.memories.length,lastTime:recent?.messages.at(-1)?.time}:null,evidence:input.historyId?history.evidence(input.historyId,refs):[]};
+      if(recent?.messages.at(-1)?.from==='me')output.warnings.push('最近一条消息由你发出；候选用于需要时跟进，不表示应立即追加消息。');
+      if(recent?.messages.some(m=>m.truncated))output.warnings.push('部分超长消息在本次分析中已截断，可通过原文编号回查完整内容。');
+      if(recent)history.saveAnalysis(recent.id,recent.revision,output);
+      return output;
     }
     finally { controller = null; }
   });
@@ -179,6 +187,7 @@ app.whenReady().then(async () => {
   handle('reply:fill', fillReply);
   handle('session:clear', () => {controller?.abort(); capture = null; selectedSource = null;});
   handle('history:list', () => history.list());
+  handle('history:recent', id => history.recent(String(id)));
   handle('history:import', async input => {
     if (summaryController || ntqqController) throw new Error('请先暂停当前任务，再导入新记录。');
     const picked=await dialog.showOpenDialog(win,{title:'导入 QQ 聊天导出文件',properties:['openFile'],filters:[{name:'QQ 可读聊天记录',extensions:['json','txt']}]});

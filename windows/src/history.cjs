@@ -57,6 +57,7 @@ class HistoryStore {
       CREATE TABLE IF NOT EXISTS profiles(session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,revision INTEGER NOT NULL,last_id INTEGER NOT NULL,covered INTEGER NOT NULL,total INTEGER NOT NULL,model TEXT NOT NULL,updated TEXT NOT NULL,body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS ntqq_sources(account TEXT NOT NULL,conversation TEXT NOT NULL,session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,PRIMARY KEY(account,conversation));
       CREATE TABLE IF NOT EXISTS memory_chunks(session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,model TEXT NOT NULL,digest TEXT NOT NULL,first_time TEXT NOT NULL,last_time TEXT NOT NULL,body TEXT NOT NULL,revision INTEGER NOT NULL,PRIMARY KEY(session_id,model,digest));
+      CREATE TABLE IF NOT EXISTS conversation_analyses(session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,revision INTEGER NOT NULL,body TEXT NOT NULL);
     `);
   }
   close(){this.db.close();}
@@ -87,6 +88,26 @@ class HistoryStore {
   memoryCount(id){return this.db.prepare('SELECT count(*) AS n FROM memory_chunks c JOIN sessions s ON s.id=c.session_id WHERE c.session_id=? AND c.revision=s.revision').get(id).n;}
   list(){return this.db.prepare(`SELECT s.id,s.name,s.self_id AS selfId,s.revision,count(m.id) AS count,min(m.time) AS first,max(m.time) AS last FROM sessions s LEFT JOIN messages m ON m.session_id=s.id GROUP BY s.id ORDER BY s.name`).all();}
   rows(id){return this.db.prepare('SELECT id,time,sender_name AS sender,side,text FROM messages WHERE session_id=? ORDER BY time,id').all(id);}
+  recent(id){
+    const session=this.list().find(s=>s.id===id);if(!session)throw new Error('请选择已导入的会话。');
+    if(!session.selfId)throw new Error('此会话没有本人 QQ 号，无法可靠区分发送人，请重新导入。');
+    const rows=this.db.prepare('SELECT id,time,sender_name AS sender,side,text FROM messages WHERE session_id=? ORDER BY time DESC,id DESC LIMIT 40').all(id);
+    if(!rows.length)throw new Error('此会话没有可分析消息。');
+    let budget=12000;const messages=[];
+    for(const row of rows){
+      const limit=Math.min(4000,budget);if(limit<100)break;
+      const truncated=row.text.length>limit,text=truncated?row.text.slice(0,limit-12)+'[本条后文已截断]':row.text;
+      messages.push({ref:`M${row.id}`,time:row.time,sender:row.sender,from:row.side,text,truncated});budget-=text.length;
+    }
+    messages.reverse();
+    const saved=this.db.prepare('SELECT revision,body FROM conversation_analyses WHERE session_id=?').get(id);
+    return {...session,messages,characters:12000-budget,analysis:saved?.revision===session.revision?JSON.parse(saved.body):null,analysisStale:Boolean(saved&&saved.revision!==session.revision)};
+  }
+  saveAnalysis(id,revision,result){
+    const current=this.db.prepare('SELECT revision FROM sessions WHERE id=?').get(id);
+    if(!current||current.revision!==revision)throw new Error('会话记录已变化，请重新载入后分析。');
+    this.db.prepare('INSERT INTO conversation_analyses VALUES(?,?,?) ON CONFLICT(session_id) DO UPDATE SET revision=excluded.revision,body=excluded.body').run(id,revision,JSON.stringify(result));
+  }
   profile(id){const row=this.db.prepare('SELECT * FROM profiles WHERE session_id=?').get(id);return row?{...row,body:JSON.parse(row.body)}:null;}
   saveProfile(id,revision,lastId,covered,total,model,body){this.db.prepare(`INSERT INTO profiles VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET revision=excluded.revision,last_id=excluded.last_id,covered=excluded.covered,total=excluded.total,model=excluded.model,updated=excluded.updated,body=excluded.body`).run(id,revision,lastId,covered,total,model,new Date().toISOString(),JSON.stringify(body));}
   remove(id){this.db.prepare('DELETE FROM sessions WHERE id=?').run(id);}
@@ -106,7 +127,9 @@ class HistoryStore {
     const validProfile=profile&&profile.revision===session.revision?profile:null;
     let memoryBudget=12000;
     const memories=validProfile?this.db.prepare('SELECT first_time,last_time,body FROM memory_chunks WHERE session_id=? AND model=? AND revision=?').all(id,validProfile.model,session.revision).map(row=>({...row,score:tokens.reduce((n,t)=>n+(row.body.toLowerCase().includes(t)?1:0),0)})).filter(row=>row.score>0).sort((a,b)=>b.score-a.score).slice(0,4).filter(row=>{if(row.body.length>memoryBudget)return false;memoryBudget-=row.body.length;return true;}).map(row=>({from:row.first_time,to:row.last_time,body:JSON.parse(row.body)})):[];
-    return {sessionName:session.name,total:session.count,profile:validProfile?.body||null,profileCoverage:validProfile?`${validProfile.covered}/${validProfile.total}`:'未生成或已过期',evidence,memories,method:'中文二字词/英文词关键词检索 + 最近八条 + 相关分段记忆；不是一次读完整历史',missingSelfId:!session.selfId};
+    const profileRefs=body=>body?['relationships','events','todos'].flatMap(key=>(body[key]||[]).flatMap(entry=>entry.refs||[])):[];
+    const referenceIds=[...new Set([...evidence.map(line=>/^\[(M\d+)\]/.exec(line)?.[1]).filter(Boolean),...profileRefs(validProfile?.body),...memories.flatMap(m=>profileRefs(m.body))])];
+    return {sessionName:session.name,total:session.count,profile:validProfile?.body||null,profileCoverage:validProfile?`${validProfile.covered}/${validProfile.total}`:'未生成或已过期',evidence,memories,referenceIds,method:'中文二字词/英文词关键词检索 + 最近八条 + 相关分段记忆；不是一次读完整历史',missingSelfId:!session.selfId};
   }
 }
 function chunks(rows,maxChars=12000){

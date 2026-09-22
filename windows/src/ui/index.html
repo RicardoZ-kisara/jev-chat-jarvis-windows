@@ -15,23 +15,34 @@
     <button class="nav" id="ntqq-open"><span>▣</span> 直接读取 QQ 记录</button>
     <button class="nav" id="history-open"><span>◷</span> 长期聊天档案</button>
     <button class="nav" id="settings-open"><span>⚙</span> 模型与设置</button>
-    <div class="rail-bottom"><span class="status-dot"></span> QQ Windows 专用 <small>v0.1.2 · Local</small><p>把话说好，<br>决定留给你。</p></div>
+    <div class="rail-bottom"><span class="status-dot"></span> QQ Windows 专用 <small>v0.1.3 · Local</small><p>把话说好，<br>决定留给你。</p></div>
   </aside>
   <main>
     <header><div class="breadcrumb">JEV / QQ WINDOWS <span>对话工作台</span></div><div class="header-actions"><span class="pill" id="provider-label">模型 API</span><span class="pill">本地 OCR</span><button id="clear" class="text-button">清空本次对话</button></div></header>
     <section class="intro"><div><div class="eyebrow">YOUR QQ CONVERSATION COPILOT</div><h1>读懂语境，从容回应<span>。</span></h1><p>理解 QQ 的长期语境，整理每次对话的下一句。</p></div><div class="intro-mark">✳</div></section>
     <div class="workspace">
       <section class="card input-card">
-        <div class="card-head"><div><span class="step">01</span><h2>准备对话</h2></div><span id="source-label" class="muted">手动输入</span></div>
+        <div class="card-head"><div><span class="step">01</span><h2>选择要回复的对话</h2></div><span id="source-label" class="muted">已导入会话</span></div>
+        <label for="conversation-mode">对话来源</label><select id="conversation-mode"><option value="history">已导入的 QQ 会话</option><option value="manual">手动输入 / 截图</option></select>
+        <div id="imported-editor">
+          <label for="conversation-search">查找联系人 / 群聊</label><input id="conversation-search" placeholder="输入会话名称或 QQ / 群号">
+          <select id="conversation-session" aria-label="选择已导入会话"><option value="">请选择已导入会话</option></select>
+          <div class="capture-row history-tools"><button class="text-button" id="conversation-refresh">重新载入本地记录</button><button class="text-button" id="conversation-memory">查看 / 更新长期记忆</button></div>
+          <p id="recent-info" class="hint">导入后即可分析，不必先生成全部长期档案。</p>
+          <div id="recent-messages" class="recent-messages"><p class="hint">请先从左侧读取或导入 QQ 记录。</p></div>
+          <p class="hint">使用近期最多 40 条消息、相关历史原文及已有长期记忆。下方结果保存在此会话中；新增 QQ 消息需先重新读取。</p>
+        </div>
+        <div id="manual-editor" hidden>
         <div class="capture-row"><button class="secondary" id="capture-open">▣ &nbsp; 选择 QQ 窗口截图</button><button class="text-button" id="example">试用示例</button></div>
         <label for="conversation">最近的聊天 <span class="muted">只分析最后 10 条</span></label>
         <textarea id="conversation" spellcheck="false" placeholder="对方：明天下午一起把方案过一遍？&#10;我：可以，你几点方便？&#10;对方：三点吧，记得带上修改稿。"></textarea>
         <p class="hint">每条一行，以「我：」或「对方：」开头。截图识别后请校对文字与说话人。</p>
         <label for="history-select">关联 QQ 历史 <span class="muted">选填</span></label><select id="history-select"><option value="">仅使用本次对话</option></select><p class="hint">关联后，长期档案与检索到的历史片段会随本次分析发送。</p>
+        </div>
         <label for="relationship">关系与背景 <span class="muted">选填 · 仅本次使用</span></label>
         <textarea id="relationship" class="context" maxlength="2000" placeholder="例如：对方是同组同学，我们正在准备项目答辩。"></textarea>
         <div class="disclosure"><span>↗</span><div>点击分析后，文字将发送到选定的模型服务；ChatGPT 模式使用 OpenAI 云端。<br><strong>截图仅在本机识别；历史档案需主动导入。</strong></div></div>
-        <div class="analyze-row"><button class="primary" id="analyze">分析对话 &nbsp; ↗</button><button id="cancel" class="secondary" hidden>取消</button></div>
+        <div class="analyze-row"><button class="primary" id="analyze">分析可能性并生成回复 &nbsp; ↗</button><button id="cancel" class="secondary" hidden>取消</button></div>
       </section>
       <section class="results-column">
         <div class="card judgment-card"><div class="card-head"><div><span class="step">02</span><h2>理解当下</h2></div><span class="model-label" id="judge-label">JEV 判断</span></div>
@@ -49,7 +60,7 @@
   <dialog id="settings-dialog"><form id="settings-form"><div class="dialog-head"><div><div class="eyebrow">PREFERENCES</div><h2>模型与设置</h2></div><button type="button" class="close" data-close="settings-dialog" aria-label="关闭">×</button></div>
     <p class="hint">密钥由 Windows 加密保存在当前用户目录。留空保留原密钥；两路密钥分别配置，不跨服务复用。</p>
     <label for="reply-provider">模型接入方式</label><select id="reply-provider"><option value="api">OpenAI 兼容 API</option><option value="codex">复用本机 ChatGPT / Codex 登录</option></select>
-    <fieldset id="codex-settings" hidden disabled><legend>ChatGPT 账号推理</legend><p class="hint">复用本机 Codex CLI 的登录，无需 API Key。推理在 OpenAI 云端执行，使用账号额度。此模式关闭 Jev 判断与排序。</p><label for="codex-model">Codex 模型</label><input id="codex-model" required><label for="codex-path">Codex CLI 路径（留空自动检测）</label><input id="codex-path" placeholder="自动查找已安装的 codex.exe"><p class="hint">账号失效时，请在 Codex 中重新登录。长历史按段请求，可暂停后续跑。</p></fieldset>
+    <fieldset id="codex-settings" hidden disabled><legend>ChatGPT 账号推理</legend><p class="hint">复用本机 Codex CLI 的登录，无需 API Key。由 ChatGPT 按 Jev 七题结构分析可能性并排序回复；这不是 Jev 模型本身的输出。推理在 OpenAI 云端执行，使用账号额度。</p><label for="codex-model">Codex 模型</label><input id="codex-model" required><label for="codex-path">Codex CLI 路径（留空自动检测）</label><input id="codex-path" placeholder="自动查找已安装的 codex.exe"><p class="hint">账号失效时，请在 Codex 中重新登录。长历史按段请求，可暂停后续跑。</p></fieldset>
     <label class="check"><input id="judge-enabled" type="checkbox">启用 Jev 判断与候选排序</label>
     <fieldset id="judge-settings"><legend>Jev 判断接口</legend><label for="judge-url">完整请求地址</label><input id="judge-url" type="url" required><div class="form-grid"><div><label for="judge-model">模型</label><input id="judge-model" required></div><div><label for="judge-key">API Key</label><input id="judge-key" type="password" autocomplete="off"></div></div><label class="check"><input id="clear-judge-key" type="checkbox">清除已保存的判断密钥</label></fieldset>
     <fieldset id="api-settings"><legend>候选生成 · OpenAI 兼容接口</legend><div class="preset-row"><button type="button" class="preset" data-preset="openrouter">OpenRouter</button><button type="button" class="preset" data-preset="deepseek">DeepSeek</button><button type="button" class="preset" data-preset="qwen">通义千问</button><button type="button" class="preset" data-preset="local">本机 Ollama</button></div><label for="reply-url">完整请求地址（含 /chat/completions）</label><input id="reply-url" type="url" required><div class="form-grid"><div><label for="reply-model">模型</label><input id="reply-model" required></div><div><label for="reply-key">API Key</label><input id="reply-key" type="password" autocomplete="off"></div></div><label class="check"><input id="clear-reply-key" type="checkbox">清除已保存的回复密钥</label></fieldset>
@@ -60,7 +71,8 @@
     <div class="dialog-head"><div><div class="eyebrow">QQ LONG-TERM CONTEXT</div><h2>长期聊天档案</h2></div><button class="close" data-close="history-dialog" aria-label="关闭">×</button></div>
     <p class="hint">可从「直接读取 QQ 记录」解密本人消息库副本，也可导入 QQ JSON / UTF-8 TXT。每个联系人或群聊独立建档，原文和分段记忆保存在本机，不会上传 GitHub。</p>
     <div class="history-grid"><section><label for="history-session">联系人 / 群聊</label><select id="history-session"><option value="">新建会话</option></select><div class="form-grid"><div><label for="history-name">会话名称</label><input id="history-name" maxlength="100" placeholder="例如：答辩项目组"></div><div><label for="history-self">本人 QQ 号</label><input id="history-self" placeholder="用于区分本人消息"></div></div><button id="history-import" class="secondary">选择导出文件并导入</button><p id="history-stats" class="hint">尚未导入记录。</p>
-    <div class="disclosure"><div>导入仅在本机处理。点击生成档案后，本会话记录才会分段发送到模型。ChatGPT 模式使用账号额度；API 模式可能产生费用。</div></div><button id="history-plan" class="secondary">查看分析范围与请求数</button><p id="history-plan-text" class="hint"></p><div class="analyze-row"><button id="history-summarize" class="primary" disabled>生成 / 继续长期档案</button><button id="history-cancel" class="secondary" hidden>暂停</button></div><button id="history-delete" class="text-button">删除本机导入副本</button><p id="history-status" role="status" class="hint"></p></section>
+    <button id="history-reply" class="primary" disabled>分析此会话并给出回复 ↗</button><p class="hint">直接分析近期消息与相关历史，无需等待完整档案。结果显示在工作台，可复制和回查依据。</p>
+    <div class="disclosure"><div>导入仅在本机处理。点击分析回复后发送近期消息及相关历史；点击生成档案后按段处理本会话全部记录。ChatGPT 模式使用账号额度；API 模式可能产生费用。</div></div><button id="history-plan" class="secondary">查看完整档案的范围与请求数</button><p id="history-plan-text" class="hint"></p><div class="analyze-row"><button id="history-summarize" class="primary" disabled>生成 / 继续长期档案</button><button id="history-cancel" class="secondary" hidden>暂停</button></div><button id="history-delete" class="text-button">删除本机导入副本</button><p id="history-status" role="status" class="hint"></p></section>
     <section><div class="card-head"><h2>关系、事件与待办</h2><span id="profile-coverage" class="muted"></span></div><div id="history-profile" class="history-profile"><p class="hint">每个结论均带原始消息引用，点击编号查看依据。</p></div><pre id="history-evidence" class="history-evidence" hidden></pre></section></div>
   </dialog>
   <dialog id="ntqq-dialog" class="history-dialog">

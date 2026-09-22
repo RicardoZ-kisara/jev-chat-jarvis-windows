@@ -1,0 +1,43 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fixture=require('./helpers/decision.cjs');
+const {parseDecision}=require('../src/decision.cjs');
+const {validateMessages}=require('../src/core.cjs');
+const {HistoryStore,normalizeHistory}=require('../src/history.cjs');
+test('model decisions have seven validated answers, alternatives and evidence; source is never labeled Jev model',()=>{
+ const data=fixture(['M1']);const result=parseDecision(JSON.stringify(data),new Set(['M1']));
+ assert.equal(Object.keys(result.answers).length,7);assert.ok(Math.abs(result.replies[0].probability-.6)<1e-10);assert.equal(result.rankingSource,'ChatGPT 偏好');
+ assert.match(result.judgmentSource,/ChatGPT/);assert.deepEqual(result.analysis.refs,['M1']);
+ const values=result.answers.true_intent.probabilities;assert.ok(Math.abs(Object.values(values).reduce((a,b)=>a+b,0)-1)<.0001);
+});
+test('invalid probability, fabricated reference and identical replies fail without fake fallback',()=>{
+ for(const mutate of [d=>d.answers.true_intent.probabilities.confirm_you_care=2,d=>d.replies[0].probability=.1,d=>d.analysis.refs=['M999'],d=>d.replies[0].refs=['M999'],d=>d.answers.danger_level.score=11,d=>d.replies[1].text=d.replies[0].text,d=>d.analysis.refs=[]]){
+  const data=fixture(['M1']);mutate(data);assert.throws(()=>parseDecision(JSON.stringify(data),new Set(['M1'])));
+ }
+});
+test('imported current context preserves forty messages, multiline bodies and group sender names',t=>{
+ const store=new HistoryStore(':memory:');t.after(()=>store.close());
+ const rows=Array.from({length:60},(_,i)=>({id:`message-${i}`,sender:i%2?'100001':'100002',senderName:i%2?'本人':'组员甲',time:new Date(Date.UTC(2026,8,22,0,i)).toISOString(),text:`消息 ${i}\n第二行：保持原文`}));
+ const id=store.import(normalizeHistory(JSON.stringify(rows),{name:'合成项目组',selfId:'100001'})).id;
+ const recent=store.recent(id),messages=validateMessages(recent.messages);
+ assert.equal(messages.length,40);assert.match(messages[0].text,/消息 20/);assert.match(messages.at(-1).text,/消息 59/);assert.equal(messages[0].sender,'组员甲');assert.equal(messages.at(-1).from,'me');assert.match(messages[0].text,/\n第二行/);
+ assert.equal(recent.analysis,null);assert.throws(()=>validateMessages([...messages,messages[0]]));
+});
+test('conversation analysis survives reload, stays isolated, and expires after source updates',t=>{
+ const store=new HistoryStore(':memory:');t.after(()=>store.close());
+ const data=normalizeHistory(JSON.stringify([{id:'one',sender:'100002',time:'2026-09-22T00:00:00Z',text:'请核对修改稿'}]),{name:'甲',selfId:'100001'});
+ const a=store.import(data).id,b=store.import({...data,name:'乙'}).id;
+ const recent=store.recent(a),result={...parseDecision(JSON.stringify(fixture([recent.messages[0].ref])),new Set([recent.messages[0].ref])),generatedAt:new Date().toISOString()};
+ store.saveAnalysis(a,recent.revision,result);assert.deepEqual(store.recent(a).analysis,result);assert.equal(store.recent(b).analysis,null);
+ const context=store.context(a,'修改稿');assert.ok(context.referenceIds.includes(recent.messages[0].ref));assert.ok(!context.referenceIds.includes(store.recent(b).messages[0].ref));
+ store.import({...data,messages:data.messages.map(m=>({...m,text:'修改安排变了'}))},a,{updateExisting:true});
+ assert.equal(store.recent(a).analysis,null);assert.equal(store.recent(a).analysisStale,true);assert.throws(()=>store.saveAnalysis(a,recent.revision,result),/变化/);
+ store.remove(a);assert.equal(store.db.prepare('SELECT count(*) AS n FROM conversation_analyses').get().n,0);
+});
+test('very long messages expose truncation and stay within bounded context',t=>{
+ const store=new HistoryStore(':memory:');t.after(()=>store.close());
+ const data=normalizeHistory(JSON.stringify([{sender:'100002',time:'2026-09-22T00:00:00Z',text:'长'.repeat(15000)}]),{name:'合成',selfId:'100001'});
+ const id=store.import(data).id,recent=store.recent(id);
+ assert.equal(recent.messages[0].truncated,true);assert.ok(recent.characters<=12000);assert.doesNotThrow(()=>validateMessages(recent.messages));
+ assert.equal(store.evidence(id,[recent.messages[0].ref])[0].text.length,15000);
+});

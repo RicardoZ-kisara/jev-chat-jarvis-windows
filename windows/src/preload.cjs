@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('jev', {
   clear: () => invoke('session:clear'),
   onOcrProgress: callback => ipcRenderer.on('ocr-progress', (_event, value) => callback(value)),
   historyList: () => invoke('history:list'),
+  historyRecent: id => invoke('history:recent',id),
   historyImport: input => invoke('history:import', input),
   historyProfile: id => invoke('history:profile', id),
   historyPlan: id => invoke('history:plan', id),
